@@ -1,4 +1,4 @@
-"""Operating-system specific parts. Windows is implemented; the Mac version is planned."""
+"""Operating-system specific parts: Windows (windows.py) and macOS (mac.py)."""
 
 from __future__ import annotations
 
@@ -14,7 +14,8 @@ def get_platform(dry_run: bool = False):
         from .windows import WindowsPlatform
 
         return WindowsPlatform()
-    raise RuntimeError(
-        "Only Windows is supported for now (the Mac version is planned). "
-        "--test-buttons and --dry-run work everywhere."
-    )
+    if sys.platform == "darwin":
+        from .mac import MacPlatform
+
+        return MacPlatform()
+    raise RuntimeError("Only Windows and macOS are supported. --test-buttons and --dry-run work everywhere.")

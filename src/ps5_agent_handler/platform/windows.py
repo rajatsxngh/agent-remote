@@ -20,15 +20,19 @@ from ..keys import Chord
 from ..matching import FoundButton, added_text, center_inside, label_matches, pick_button
 from ..menus import EFFORT_NAMES, MenuItem, choose, effort_candidates, effort_from_label
 from ..status import SessionStatus, light_for_screen
-
-# Buttons that mean Claude is asking your permission for something.
-APPROVAL_LABELS = ("Allow once", "Allow for this session", "Always allow", "Deny")
-# The box at the end of a reply where Claude asks what to do next, with answer buttons.
-NEXT_STEP_BOX = "Suggested next actions"
-# Claude's question card (a question with answers, Skip and Submit) has this class.
-QUESTION_CARD_CLASS = "epitaxy-approval-card"
-NO_LABELS = ("Not now", "No", "Skip", "Later", "Cancel")
-DISMISS_LABELS = ("Dismiss recap", "Dismiss suggestion", "Dismiss")
+from .common import (
+    APPROVAL_LABELS,
+    CONVERSATION,
+    DISMISS_LABELS,
+    IGNORED_STATUS_TEXT,
+    MAIN_PANE,
+    MENU_SHORTCUTS,
+    NEXT_STEP_BOX,
+    NO_LABELS,
+    POPUPS_ID,
+    QUESTION_CARD_CLASS,
+    SESSION_STATUS_TEXT,
+)
 
 log = logging.getLogger(__name__)
 
@@ -342,30 +346,9 @@ TYPE_RADIO = 50013
 TYPE_TEXT = 50020
 TYPE_GROUP = 50026
 
-# What a session row's hidden status line says (for screen readers), and what it
-# means. The Code tab's own words come first; the others are what Cowork rows say.
-SESSION_STATUS_TEXT = {
-    "Awaiting input": "attention",
-    "Awaiting answer": "attention",
-    "Running": "running",
-    "Using the browser": "running",
-    "Unread response": "unread",
-    "Error": "error",
-    "Needs attention": "attention",
-    "Unread": "unread",
-}
-IGNORED_STATUS_TEXT = {"Idle", "Done"}
 TYPE_STATUS_BAR = 50017
-# Claude's own shortcuts for its menus (from the Code tab's keyboard shortcuts list).
-MENU_SHORTCUTS = {"effort": Chord(("ctrl", "shift"), "e"), "model": Chord(("ctrl", "shift"), "i")}
 SCOPE_DESCENDANTS = 4
 WAKE_GRACE_S = 3.0  # Chromium needs a moment to build its tree after waking
-
-# Where Claude's own controls live. Searching only here keeps session names in
-# the sidebar (say, a session called "Deny the refund") from ever matching.
-MAIN_PANE = "Primary pane"
-POPUPS_ID = "portal-root"
-CONVERSATION = "Chat messages"
 
 
 class _Uia:
