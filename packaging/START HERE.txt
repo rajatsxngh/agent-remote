@@ -1,0 +1,24 @@
+ps5-agent: drive the Claude desktop app's Code tab with a PS5 controller
+==========================================================================
+
+1. Pair the controller over Bluetooth: hold PS + Create (the small button left
+   of the touchpad) until the light bar flashes, then add it in Windows
+   Settings > Bluetooth & devices > Add device > Bluetooth. A USB-C cable works too.
+
+2. Open the Claude desktop app and go to the Code tab.
+
+3. Double-click ps5-agent.exe. A window opens and shows what each button does;
+   keep it open while you play. Press Ctrl+C in it (or close it) to quit.
+
+The first run makes config.toml next to ps5-agent.exe. Edit it to change what
+the buttons do; saved changes load by themselves.
+
+Quick test of the buttons:   ps5-agent.exe --test-buttons
+See what Claude is showing:  ps5-agent.exe --inspect
+
+If Windows shows "Windows protected your PC", click "More info" > "Run anyway":
+the app isn't code-signed yet. It only reads Claude's window and presses keys in
+Claude while you use the controller; the full source code is on GitHub.
+
+If nothing happens when you press buttons and Steam is running, quit Steam (its
+controller support takes over PlayStation controllers).

@@ -4,7 +4,17 @@ Use a PS5 DualSense controller to drive the **Code tab** of the Claude desktop a
 
 It runs on Windows for now. Everything Windows-specific lives in `src/ps5_agent_handler/platform/windows.py`, so a Mac version only needs that one file redone.
 
-## Set up
+## Download (Windows)
+
+1. Download `ps5-agent-windows.zip` from the latest release and unzip it anywhere.
+2. Pair the controller (see step 2 below), open the Claude desktop app's Code tab, and double-click `ps5-agent.exe`.
+3. Keep its window open while you use the controller. `START HERE.txt` in the zip has the details.
+
+The first run puts `config.toml` next to `ps5-agent.exe`, so you can change the buttons. The app isn't code-signed yet, so Windows may say "Windows protected your PC": choose **More info**, then **Run anyway**. The download leaves out local Whisper to stay small (27 MB); Circle uses Claude's own mic.
+
+To build the download yourself: `uv run python packaging/build.py` (makes `dist/ps5-agent-windows.zip`).
+
+## Set up from source
 
 1. Install [uv](https://docs.astral.sh/uv/getting-started/installation/).
 2. Pair the controller over Bluetooth: hold **PS** and **Create** (the small button to the left of the touchpad) until the light bar flashes. Then add it in Windows **Settings > Bluetooth & devices > Add device > Bluetooth**. A USB-C cable works too.

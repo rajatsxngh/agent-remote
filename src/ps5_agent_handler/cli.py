@@ -34,7 +34,7 @@ def main(argv: list[str] | None = None) -> int:
         prog="ps5-agent",
         description="Drive the Claude desktop app's Code tab with a PS5 DualSense controller.",
     )
-    parser.add_argument("--config", type=Path, default=Path("config.toml"), help="button map (default: ./config.toml)")
+    parser.add_argument("--config", type=Path, default=None, help="button map (default: config.toml next to the app)")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--test-buttons", action="store_true", help="only show what the controller sends")
     mode.add_argument("--dry-run", action="store_true", help="show what each button would do, without touching Claude")
@@ -55,17 +55,50 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         if args.inspect:
-            return inspect_claude()
+            return _finish(inspect_claude())
         if args.test_buttons:
             return test_buttons()
+        config_path = args.config or default_config_path()
         try:
-            config = load_config(args.config)
+            config = load_config(config_path)
         except ConfigError as exc:
             print(f"config problem: {exc}")
-            return 2
-        return run(config, args.config, dry_run=args.dry_run)
+            return _finish(2)
+        return _finish(run(config, config_path, dry_run=args.dry_run))
     except KeyboardInterrupt:
         return 0
+
+
+FROZEN = getattr(sys, "frozen", False)  # running as the packaged .exe
+
+
+def default_config_path() -> Path:
+    """config.toml next to the app (the .exe when packaged, else the current folder).
+
+    The packaged app carries a default copy and puts it next to the .exe on first
+    run, so it's easy to find and edit.
+    """
+    if not FROZEN:
+        return Path("config.toml")
+    here = Path(sys.executable).resolve().parent / "config.toml"
+    if not here.exists():
+        bundled = Path(getattr(sys, "_MEIPASS", here.parent)) / "config.toml"
+        try:
+            here.write_bytes(bundled.read_bytes())
+            print(f"Made your button map: {here}")
+        except OSError:
+            return bundled  # read-only folder: use the built-in copy
+    return here
+
+
+def _finish(code: int) -> int:
+    """When the packaged app was double-clicked, keep its window open after an error."""
+    if FROZEN and code:
+        try:
+            input("\nPress Enter to close.")
+        except (EOFError, KeyboardInterrupt):
+            pass
+    return code
 
 
 # ---------------------------------------------------------------- run
