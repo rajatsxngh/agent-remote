@@ -1,0 +1,108 @@
+# PS5 controller -> Claude desktop (Code tab).
+# Save this file while the app is running and it reloads by itself.
+#
+# Buttons:  cross circle square triangle dpad_up dpad_down dpad_left dpad_right
+#           l1 r1 l2 r2 l3 r3 options create ps touchpad mute
+#           lstick_up lstick_down lstick_left lstick_right  (flick the left stick)
+# Gestures: touchpad_swipe right_stick   (these can only be "scroll" or "none")
+#
+# A button can name an action from [actions] below, a built-in action, or an
+# inline one such as  l2 = { keys = "ctrl+enter" }.
+# Built-ins: toggle_talk, push_to_talk, pause, previous_app, next_app,
+#            scroll, scroll_up, scroll_down, jump_to_attention,
+#            effort_down, effort_up, model_previous, model_next, none
+
+# While one of Claude's question cards is open ("What would you like to do
+# next?" with options), the D-pad and Cross work on the card instead: up / down
+# move between answers, left / right jump between questions, Cross picks or
+# ticks. Triangle sends the answers, Square skips.
+
+[buttons]
+dpad_up    = "up"                # previous session, or the answer above on a question card
+dpad_down  = "down"              # next session, or the answer below
+lstick_up  = "previous_session"  # flick the left stick up: one session up, always (let it come back to flick again)
+lstick_down = "next_session"     # flick it down: one session down
+dpad_left  = "left"              # Shift+Tab: previous thing on screen, or the previous question
+dpad_right = "right"             # Tab: next thing (in an empty prompt box, Tab accepts the suggested prompt), or the next question
+cross      = "send"              # Enter: sends what's in the prompt box; on a question card, picks / ticks the answer
+circle     = "dictate"           # Claude's own mic: press to start, press again to stop; the text waits for Cross
+# circle   = "toggle_talk"       # the same, but with local Whisper instead of Claude's mic
+triangle   = "approve"
+square     = "reject"
+l1         = "model_previous"    # the model above in Claude's list (Opus, Fable, Sonnet, Haiku)
+r1         = "model_next"        # the model below
+l2         = "effort_down"       # less thinking: sends /effort with the next level down (no menu)
+r2         = "effort_up"         # more thinking: /effort with the next level up
+create     = "jump_to_attention" # open the session that needs you; press again for the next one
+mute       = "stop"              # the mic button (below the PS button): Esc, stops Claude's reply
+# l3 = "previous_app"            # app switching, like Alt+Shift+Tab (not on a button right now)
+# r3 = "next_app"                # like Alt+Tab
+options    = "new_session"
+ps         = "pause"             # pause / resume the whole controller
+touchpad   = "scroll_to_bottom"  # press the touchpad: jump to the newest message
+touchpad_swipe = "scroll"
+right_stick    = "scroll"
+# options = { keys = "ctrl+enter" }  # example: press Claude's suggested next step
+# circle = "push_to_talk"            # example: hold to talk with local Whisper
+
+[actions]
+# keys  = a shortcut, or a list of shortcuts, sent to Claude
+# click = labels of on-screen buttons to press, tried in order
+# repeat = true keeps repeating while you hold the button
+# question = what to do instead while a question card is open: option_previous,
+#            option_next, option_pick, question_previous, question_next
+previous_session = { keys = "ctrl+shift+[" }
+next_session     = { keys = "ctrl+shift+]" }
+up               = { keys = "ctrl+shift+[", question = "option_previous" }
+down             = { keys = "ctrl+shift+]", question = "option_next" }
+left             = { keys = "shift+tab", repeat = true, question = "question_previous" }
+right            = { keys = "tab", repeat = true, question = "question_next" }
+send             = { keys = "enter", question = "option_pick" }
+stop             = { keys = "escape" }
+new_session      = { keys = "ctrl+n" }
+# next_step: with no permission prompt showing, answer Claude's next-step box
+# instead ("Should I...?"): yes = its main button (the Ctrl+Enter one),
+# no = its "Not now" button, or close the box.
+approve          = { click = ["Allow once", "Allow", "Allow for this session", "Approve"], next_step = "yes" }
+reject           = { click = ["Deny", "Reject"], next_step = "no" }
+scroll_to_bottom = { click = ["Scroll to bottom"] }
+# Claude's mic button: a press starts dictation, and while it records the
+# button turns into "Stop dictation", so the same press stops it.
+dictate          = { click = ["Stop dictation", "Press and hold to record", "Dictate", "Turn on microphone"], focus_prompt = true }
+
+[settings]
+bring_claude_to_front = true     # Claude actions also work when another app is in front
+trigger_threshold = 0.5          # how far L2/R2 must be pulled to count as pressed (0-1)
+stick_deadzone = 0.25
+scroll_speed = 1.0
+invert_scroll = false
+app_switch_delay = 0.8           # seconds after the last L1/R1 tap before the switch happens
+log_buttons = true               # print every button press
+
+[voice]
+engine = "whisper"               # "whisper" (local model) or "claude" (Claude's own hold-to-record, Shift+F10)
+model = "small.en"               # tiny.en / base.en are faster, medium.en is more accurate
+language = "en"                  # "" = detect the language (use a model without .en)
+device = "cpu"                   # "cuda" also needs NVIDIA's CUDA 12 and cuDNN libraries
+compute_type = "int8"
+microphone = ""                  # "" = the Windows default mic, or part of a mic's name
+keep_mic_open = false            # false: the mic opens when you start; talk after the buzz (~0.5s)
+                                 # true: talking starts instantly, but Windows shows the mic as in use all the time
+auto_send = false                # false: your words wait in the prompt box until you press Cross
+min_seconds = 0.4                # shorter presses are ignored
+max_seconds = 120
+hint_words = "Claude, Claude Code, Python, Git, GitHub, pull request, commit, refactor, pytest, repo"
+claude_keys = "shift+f10"        # what engine = "claude" holds down
+
+[feedback]
+rumble = true
+lightbar = true
+# The light bar follows Claude: red (pulsing) = needs you (an approval or a
+# question), yellow = working, blue = done. Dim white = no session open,
+# nearly off = paused. It also buzzes when the session starts needing you or
+# finishes.
+agent_status = true
+light_follows = "screen"         # "screen": the session open in Claude; "all": every session (most urgent wins)
+buzz_needs_you = true            # buzz when the session starts needing you
+buzz_done = false                # buzz when it finishes
+buzz_nothing = false             # low buzz when a button found nothing to do
