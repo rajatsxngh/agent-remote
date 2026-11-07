@@ -32,10 +32,10 @@ Keep that terminal open: it prints what each button did. The first time it start
 
 | Button | What it does | How |
 |---|---|---|
-| D-pad up / down | Previous / next session; **on a question card**, the answer above / below (single-choice answers get selected as you move) | Ctrl+Shift+[ / Ctrl+Shift+] |
+| D-pad up / down | Previous / next session; **on a question card**, highlight the answer above / below (Cross picks it) | Ctrl+Shift+[ / Ctrl+Shift+] |
 | Left stick, flick up / down | Previous / next session (one per flick; let it return to the middle to flick again) | same as the D-pad |
 | D-pad left / right | Move to the previous / next thing on screen (hold to repeat); **on a question card**, the previous / next question | Shift+Tab / Tab |
-| Cross | Send / confirm; **on a question card**, pick or tick the highlighted answer (on **Other**, it also puts the cursor in its box, so Circle dictates into it) | Enter |
+| Cross | Send / confirm; **on a question card**, pick or tick the highlighted answer (on **Other**, it also puts the cursor in its box) | Enter |
 | Circle | Talk: press to start, press again to stop; the text waits for Cross | presses Claude's own mic button |
 | Triangle | Yes: approve what Claude is asking | presses a permission prompt's **Allow**; with no prompt, the main button of whatever Claude is waiting on (the one with Ctrl+Enter: **Submit** on a question card, the first answer in the next-step box) |
 | Square | No: reject it | presses a permission prompt's **Deny**; with no prompt, **Skip** / **Not now** / **No** in that same card, or closes it |
@@ -92,6 +92,8 @@ Press **Ctrl+/** in the Code tab to see all of Claude's own shortcuts.
 ## Voice
 
 **Circle** presses the Code tab's own mic button. Press it, talk, press it again, and Claude puts what you said into the prompt box. Then press **Cross** to send it. Claude does the speech-to-text, so this needs the internet.
+
+**Answering "Other" by voice:** on a question card, pick **Other** (D-pad, then Cross), press **Circle**, talk, press **Circle** again. Claude's dictation always writes into the prompt box, so once it finishes the app moves your words into the Other box; then **Triangle** sends the answer. It puts the cursor at the end of the prompt box before dictating and moves only the words that were added, so anything already in the prompt box stays as it was.
 
 **Local Whisper** is the offline alternative: set `circle = "toggle_talk"` (press to start / stop), or put `push_to_talk` on a button you hold, then restart the app. Whisper only loads when a button uses it. With Whisper, wait for the buzz and the pink light before talking, because the laptop's mic gives only silence for its first half second after it opens. Whisper settings are in `[voice]`:
 

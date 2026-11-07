@@ -1,4 +1,12 @@
-from ps5_agent_handler.matching import FoundButton, label_matches, pick_button
+from ps5_agent_handler.matching import FoundButton, added_text, label_matches, pick_button
+
+
+def test_added_text_finds_only_the_new_words():
+    assert added_text("\n", "use staging\n") == ("use staging", True)
+    assert added_text("my draft\n", "my draft use staging\n") == (" use staging", True)
+    assert added_text("my draft", "use staging my draft") == ("use staging ", False)
+    assert added_text("my draft\n", "my draft\n") == ("", True)
+    assert added_text("my draft", "something else") is None  # changed some other way: touch nothing
 
 
 def button(name, top=0, offscreen=False, enabled=True, left=600):

@@ -42,6 +42,22 @@ def center_inside(button: FoundButton, rects: Iterable[Rect]) -> bool:
     return any(left <= cx <= right and top <= cy <= bottom for left, top, right, bottom in rects)
 
 
+def added_text(before: str, after: str) -> tuple[str, bool] | None:
+    """What dictation added to a text box: (the added characters, added at the end?).
+
+    None if the box changed in some other way (then nothing should be touched).
+    Trailing newlines, which Claude's editor reports at the end, are ignored.
+    """
+    old, new = before.rstrip("\n"), after.rstrip("\n")
+    if new == old:
+        return "", True
+    if new.startswith(old):
+        return new[len(old):], True
+    if new.endswith(old):
+        return new[: len(new) - len(old)], False
+    return None
+
+
 def pick_button(
     buttons: Sequence[FoundButton], labels: Sequence[str], exclude: Iterable[Rect] = ()
 ) -> FoundButton | None:

@@ -9,6 +9,7 @@ class FakePlatform:
         self.screen = screen
         self.next_step_result = None
         self.question_result = None
+        self.other_picked = False
         self.calls = []
         self.click_result = click_result
         self.foreground = foreground
@@ -34,6 +35,19 @@ class FakePlatform:
 
     def focus_question_other(self, window):
         return False
+
+    def question_other_picked(self, window):
+        return self.other_picked
+
+    def prompt_text(self, window):
+        return "a draft I was writing"
+
+    def prompt_caret_to_end(self, window):
+        self.calls.append("caret_to_end")
+
+    def move_dictation_to_other(self, window, before):
+        self.calls.append(("move_to_other", before))
+        return "moved", "use the staging database"
 
     def answer_next_step(self, window, answer):
         self.calls.append(("next_step", answer))
@@ -182,6 +196,42 @@ def test_without_a_question_card_the_dpad_switches_sessions():
     platform = FakePlatform()  # question_step returns None: no card open
     run_jobs(config, platform, RunAction(config.bindings["dpad_down"]))
     assert ("chord", "ctrl+shift+]") in platform.calls
+
+
+def _circle():
+    from ps5_agent_handler.config import parse_config
+
+    return parse_config(
+        {"buttons": {"circle": {"click": ["Stop dictation", "Press and hold to record"], "focus_prompt": True}}}
+    )
+
+
+class MicPlatform(FakePlatform):
+    """Claude's mic: the first press starts dictation, the second stops it."""
+
+    def click_button(self, window, labels):
+        self.calls.append(("click", labels))
+        self.recording = not getattr(self, "recording", False)
+        return "Press and hold to record" if self.recording else "Stop dictation"
+
+
+def test_dictation_started_with_other_picked_lands_in_the_other_box():
+    config = _circle()
+    platform = MicPlatform()
+    platform.other_picked = True
+    circle = RunAction(config.bindings["circle"])
+    run_jobs(config, platform, circle, circle)
+    # The cursor went to the end first, and the draft is passed along so only new words move.
+    assert "caret_to_end" in platform.calls
+    assert ("move_to_other", "a draft I was writing") in platform.calls
+
+
+def test_normal_dictation_is_left_alone():
+    config = _circle()
+    platform = MicPlatform()  # no question card / Other not picked
+    circle = RunAction(config.bindings["circle"])
+    run_jobs(config, platform, circle, circle)
+    assert not [c for c in platform.calls if c[0] == "move_to_other"]
 
 
 def test_app_switch_holds_alt_then_lets_go(config):

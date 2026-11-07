@@ -17,7 +17,7 @@ import time
 from ctypes import wintypes
 
 from ..keys import Chord
-from ..matching import FoundButton, center_inside, label_matches, pick_button
+from ..matching import FoundButton, added_text, center_inside, label_matches, pick_button
 from ..menus import EFFORT_NAMES, MenuItem, choose, effort_candidates, effort_from_label
 from ..status import SessionStatus, light_for_screen
 
@@ -25,6 +25,8 @@ from ..status import SessionStatus, light_for_screen
 APPROVAL_LABELS = ("Allow once", "Allow for this session", "Always allow", "Deny")
 # The box at the end of a reply where Claude asks what to do next, with answer buttons.
 NEXT_STEP_BOX = "Suggested next actions"
+# Claude's question card (a question with answers, Skip and Submit) has this class.
+QUESTION_CARD_CLASS = "epitaxy-approval-card"
 NO_LABELS = ("Not now", "No", "Skip", "Later", "Cancel")
 DISMISS_LABELS = ("Dismiss recap", "Dismiss suggestion", "Dismiss")
 
@@ -570,44 +572,55 @@ class _Uia:
                     return SessionStatus(row.CachedName or "", "running").title
         return None
 
-    def question_answers(self, hwnd: int) -> list[dict]:
-        """The answers of a question card on screen, in order (empty if none is open).
-
-        Each is a dict: element, kind ("radio" / "checkbox"), name, checked,
-        focused, top, group (which question it belongs to).
-        """
+    def question_card(self, hwnd: int):
+        """The question card on screen ("approval card": a question with answers,
+        Skip and Submit), the lowest one if there are several; None if none."""
         window = self._window(hwnd)
-        if self._find_all(window, self._is(PROP_CONTROL_TYPE, TYPE_MENU), raw=True):
-            return []  # a menu is open, so these are its items, not answers
-        # Only Claude's main pane and its popups: the Claude / Code switch at the
-        # top of the window is made of radio buttons too.
-        roots = self._find_all(window, self._group_named(MAIN_PANE))
-        roots += self._find_all(window, self._is(PROP_AUTOMATION_ID, POPUPS_ID))
-        kinds = self._any([self._is(PROP_CONTROL_TYPE, t) for t in (TYPE_RADIO, TYPE_CHECKBOX)])
-        props = (PROP_NAME, PROP_ARIA, PROP_OFFSCREEN, PROP_HAS_FOCUS, PROP_CONTROL_TYPE, PROP_BOUNDS)
-        walker = self.ua.RawViewWalker
-        answers = []
-        elements = [e for root in roots for e in self._find_all(root, kinds, props, raw=True)]
-        for element in elements:
+        best = None
+        for group in self._find_all(window, self._is(PROP_CONTROL_TYPE, TYPE_GROUP), (PROP_CLASS_NAME, PROP_OFFSCREEN, PROP_BOUNDS), raw=True):
             try:
-                rect = element.CachedBoundingRectangle
-                if element.CachedIsOffscreen or rect.right - rect.left <= 0:
+                if not (group.CachedClassName or "").startswith(QUESTION_CARD_CLASS) or group.CachedIsOffscreen:
                     continue
-                aria = element.CachedAriaProperties or ""
-                checked = "checked=true" in aria or "selected=true" in aria
-                toggle = element.GetCurrentPattern(PATTERN_TOGGLE)
-                if toggle and not checked:
-                    checked = toggle.QueryInterface(self.uiac.IUIAutomationTogglePattern).CurrentToggleState == 1
-                parent = walker.GetParentElement(element)
+                top = group.CachedBoundingRectangle.top
+                if best is None or top > best[0]:
+                    best = (top, group)
+            except Exception:
+                continue
+        return best[1] if best else None
+
+    def question_answers(self, hwnd: int) -> list[dict]:
+        """The answers on the question card on screen, in order (empty if none is open).
+
+        Claude draws each answer as a toggle button ("pressed" = picked). Each is
+        a dict: element, kind ("option"), name, checked, focused, top, group
+        (which question on the card it belongs to).
+        """
+        card = self.question_card(hwnd)
+        if card is None:
+            return []
+        props = (PROP_NAME, PROP_ARIA, PROP_HAS_FOCUS, PROP_BOUNDS, PROP_ENABLED)
+        walker = self.ua.RawViewWalker
+        card_id = tuple(card.GetRuntimeId())
+        answers = []
+        for element in self._find_all(card, self._is(PROP_CONTROL_TYPE, TYPE_BUTTON), props, raw=True):
+            try:
+                if not element.CachedIsEnabled or not element.GetCurrentPattern(PATTERN_TOGGLE):
+                    continue  # Skip / Submit are plain buttons; answers are toggle buttons
+                aria = (element.CachedAriaProperties or "").split(";")
+                checked = "pressed=true" in aria or "checked=true" in aria
+                # The question an answer belongs to: its ancestor just below the card.
+                block, cursor = element, walker.GetParentElement(element)
+                while cursor and tuple(cursor.GetRuntimeId()) != card_id:
+                    block, cursor = cursor, walker.GetParentElement(cursor)
                 answers.append(
                     {
                         "element": element,
-                        "kind": "radio" if element.CachedControlType == TYPE_RADIO else "checkbox",
+                        "kind": "option",
                         "name": " ".join((element.CachedName or "").split())[:60],
                         "checked": checked,
                         "focused": bool(element.CachedHasKeyboardFocus),
-                        "top": rect.top,
-                        "group": tuple(parent.GetRuntimeId()) if parent else None,
+                        "top": element.CachedBoundingRectangle.top,
+                        "group": tuple(block.GetRuntimeId()),
                     }
                 )
             except Exception:  # it vanished while Claude was redrawing
@@ -830,15 +843,8 @@ class WindowsPlatform:
     # -- question cards ("What would you like to do next?" with options) --
 
     def _choose(self, answer: dict) -> None:
-        """Select a single-choice answer, or flip a tick box."""
+        """Pick an answer: flip its toggle (Claude un-picks the old one on single-choice cards)."""
         element = answer["element"]
-        if answer["kind"] == "radio":
-            selection = element.GetCurrentPattern(PATTERN_SELECTION_ITEM)
-            if selection:
-                selection.QueryInterface(self.uia.uiac.IUIAutomationSelectionItemPattern).Select()
-                return
-            if answer["checked"]:
-                return
         toggle = element.GetCurrentPattern(PATTERN_TOGGLE)
         if toggle:
             toggle.QueryInterface(self.uia.uiac.IUIAutomationTogglePattern).Toggle()
@@ -846,25 +852,23 @@ class WindowsPlatform:
         self.uia.invoke(element)
 
     def _focus_other_box(self, window: int, answer: dict) -> bool:
-        """Put the cursor in the text box that belongs to an "Other" answer (just below it)."""
+        """Put the cursor in the text box that belongs to an "Other" answer (it sits
+        right beside it, and appears once Other is picked)."""
         uia = self.uia
-        top = answer["top"]
-        best = None
-        for edit in uia._find_all(uia._window(window), uia._is(PROP_CONTROL_TYPE, TYPE_EDIT), (PROP_NAME, PROP_BOUNDS, PROP_OFFSCREEN), raw=True):
-            try:
-                name = edit.CachedName or ""
-                rect = edit.CachedBoundingRectangle
-                if edit.CachedIsOffscreen or name in ("Prompt", "Terminal input") or rect.top < top - 5:
-                    continue
-                distance = rect.top - top
-                if best is None or distance < best[0]:
-                    best = (distance, edit)
-            except Exception:
-                continue
-        if best is None or best[0] > 400:
-            return False
-        best[1].SetFocus()
-        return True
+        walker = uia.ua.RawViewWalker
+        for _attempt in range(6):
+            holder = walker.GetParentElement(answer["element"])
+            for _ in range(2):  # the box is inside Other's own row
+                if not holder:
+                    break
+                edits = uia._find_all(holder, uia._is(PROP_CONTROL_TYPE, TYPE_EDIT), (PROP_OFFSCREEN,), raw=True)
+                edits = [e for e in edits if not e.CachedIsOffscreen]
+                if edits:
+                    edits[0].SetFocus()
+                    return True
+                holder = walker.GetParentElement(holder)
+            time.sleep(0.08)  # give Claude a moment to show the box
+        return False
 
     def question_step(self, window: int, op: str) -> str | None:
         """Work a question card if one is open; None means there isn't one.
@@ -882,15 +886,18 @@ class WindowsPlatform:
         checked = next((i for i, a in enumerate(answers) if a["checked"]), None)
         here = focused if focused is not None else checked
         if op == "option_pick":
-            answer = answers[here if here is not None else 0]
+            if focused is None:
+                # Nothing highlighted yet: highlight first, so Cross never un-picks by surprise.
+                start = checked if checked is not None else 0
+                answers[start]["element"].SetFocus()
+                return f"Highlighted '{answers[start]['name']}'. Press Cross again to pick it."
+            answer = answers[focused]
             self._choose(answer)
             label = answer["name"]
             if label.casefold().startswith("other"):
                 if self._focus_other_box(window, answer):
                     return "Picked 'Other'. Type or dictate (Circle) your answer, then Triangle sends it."
-            if answer["kind"] == "checkbox":
-                return f"{'Unticked' if answer['checked'] else 'Ticked'} '{label}'."
-            return f"Picked '{label}'."
+            return f"{'Un-picked' if answer['checked'] else 'Picked'} '{label}'."
         if op in ("question_previous", "question_next"):
             groups: list[list[int]] = []
             for i, answer in enumerate(answers):
@@ -905,23 +912,97 @@ class WindowsPlatform:
             answers[index]["element"].SetFocus()
             return f"Question {target + 1} of {len(groups)}: '{answers[index]['name']}'."
         step = 1 if op == "option_next" else -1
-        if here is None:
-            target = 0 if step > 0 else len(answers) - 1
-        else:
-            target = max(0, min(len(answers) - 1, here + step))
-        answer = answers[target]
-        answer["element"].SetFocus()
-        if answer["kind"] == "radio":
-            self._choose(answer)
-        return f"Option: '{answer['name']}'."
+        if focused is None:
+            # First press: step into the card at the picked answer (or the first one).
+            target = here if here is not None else (0 if step > 0 else len(answers) - 1)
+            answers[target]["element"].SetFocus()
+            return f"Option: '{answers[target]['name']}'."
+        target = max(0, min(len(answers) - 1, focused + step))
+        # Inside the card, use Claude's own arrow keys so its focus ring shows;
+        # if that doesn't move the highlight, move it directly.
+        if self.is_foreground(window):
+            self.send_chord(Chord((), "down" if step > 0 else "up"))
+            time.sleep(0.06)
+            moved = next((i for i, a in enumerate(self.uia.question_answers(window)) if a["focused"]), None)
+            if moved is not None and moved != focused:
+                return f"Option: '{answers[min(moved, len(answers) - 1)]['name']}'."
+        answers[target]["element"].SetFocus()
+        return f"Option: '{answers[target]['name']}'."
 
-    def focus_question_other(self, window: int) -> bool:
-        """If a question card has "Other" picked, put the cursor in its box (for dictation)."""
-        answers = self.uia.question_answers(window)
-        for answer in answers:
+    def _picked_other(self, window: int) -> dict | None:
+        for answer in self.uia.question_answers(window):
             if answer["checked"] and answer["name"].casefold().startswith("other"):
-                return self._focus_other_box(window, answer)
-        return False
+                return answer
+        return None
+
+    def question_other_picked(self, window: int) -> bool:
+        """True if a question card on screen has "Other" picked."""
+        return self._picked_other(window) is not None
+
+    def dictation_state(self, window: int) -> str:
+        """Claude's mic: "recording", "finishing" (still writing the words), or "idle"."""
+        names = [b.name for b in self.uia.buttons(window)]
+        if "Stop dictation" in names:
+            return "recording"
+        if any(name.startswith("Finishing dictation") for name in names):
+            return "finishing"
+        return "idle"
+
+    def prompt_caret_to_end(self, window: int) -> None:
+        """Put the cursor at the end of Claude's prompt box, so dictation adds there."""
+        if self.focus_prompt(window) and self.is_foreground(window):
+            self.send_chord(Chord(("ctrl",), "end"))
+
+    def _select_chars(self, count: int, backwards: bool) -> None:
+        """Shift+arrow `count` times in one go, selecting that many characters."""
+        arrow = VK["left"] if backwards else VK["right"]
+        events = [_key_event(VK["shift"], False)]
+        for _ in range(count):
+            events += [_key_event(arrow, False), _key_event(arrow, True)]
+        events.append(_key_event(VK["shift"], True))
+        _send(events)
+
+    def move_dictation_to_other(self, window: int, before: str) -> tuple[str, str]:
+        """Claude's dictation always writes into its prompt box. Once it's done,
+        move just the new words into the "Other" answer's box on the question card.
+
+        before is what the prompt box held when dictation started (with the cursor
+        put at its end). Only the words added since are removed, so a draft you were
+        writing stays as it was. Returns (outcome, words): "moved", "nothing",
+        "changed" (the box changed in a way that isn't just added words, so
+        nothing was touched) or "no_box".
+        """
+        deadline = time.monotonic() + 8.0
+        while time.monotonic() < deadline and self.dictation_state(window) != "idle":
+            time.sleep(0.15)
+        old = before.rstrip("\n")
+        settle = time.monotonic() + 2.0  # the words land a moment after the mic stops
+        while time.monotonic() < settle and self.prompt_text(window).rstrip("\n") == old:
+            time.sleep(0.1)
+        time.sleep(0.2)
+        new = self.prompt_text(window)
+        change = added_text(before, new)
+        if change is None:
+            return "changed", new.strip()
+        added, at_end = change
+        words = added.strip()
+        if not words:
+            return "nothing", ""
+        other = self._picked_other(window)
+        if other is None or not self.is_foreground(window) or not self.focus_prompt(window):
+            return "no_box", words
+        # Select exactly the added characters and delete them; the draft stays.
+        self.send_chord(Chord(("ctrl",), "end" if at_end else "home"))
+        self._select_chars(len(added), backwards=at_end)
+        self.send_chord(Chord((), "backspace"))
+        time.sleep(0.1)
+        if self.prompt_text(window).rstrip("\n") != old:
+            log.warning("The prompt box didn't come out exactly as before; check it.")
+        if not self._focus_other_box(window, other):
+            self.set_clipboard(words)
+            return "no_box", words
+        self.paste_text(window, words, send=False)
+        return "moved", words
 
     def answer_next_step(self, window: int, answer: str) -> str | None:
         """Answer whatever Claude is waiting on: its next-step box ("Should I...?")
@@ -935,7 +1016,16 @@ class WindowsPlatform:
         self._ready(window)
         uia = self.uia
         props = (PROP_NAME, PROP_ENABLED, PROP_ACCELERATOR)
-        mains = [b for b in uia.buttons(window) if b.enabled and "enter" in b.accel.casefold()]
+        all_buttons = uia.buttons(window)
+        mains = [b for b in all_buttons if b.enabled and "enter" in b.accel.casefold()]
+        # A question card's Submit shows Ctrl+Enter on screen, but UI Automation
+        # doesn't report it, so also accept a Submit inside a question card.
+        card = uia.question_card(window)
+        if card is not None:
+            for b in uia._find_all(card, uia._is(PROP_CONTROL_TYPE, TYPE_BUTTON), (PROP_NAME, PROP_ENABLED, PROP_BOUNDS, PROP_OFFSCREEN)):
+                if (b.CachedName or "") == "Submit" and b.CachedIsEnabled:
+                    r = b.CachedBoundingRectangle
+                    mains.append(FoundButton("Submit", r.left, r.top, r.right, r.bottom, bool(b.CachedIsOffscreen), True, "", b))
         visible = [b for b in mains if not b.offscreen]
         if visible or mains:
             main = max(visible or mains, key=lambda b: b.bottom)  # the newest card, at the bottom
@@ -1004,9 +1094,10 @@ class WindowsPlatform:
         names = [b.name for b in buttons if not b.offscreen]
         approval = any(label_matches(name, label) for name in names for label in APPROVAL_LABELS)
         stop = any(name == "Stop" for name in names)  # Claude's stop button shows while it works
-        # Claude's next-step box ("Should I...?" with answer buttons) waiting for you.
+        # Claude's next-step box ("Should I...?" with answer buttons) or a question card waiting for you.
         boxes = self.uia._rects(window, self.uia._group_named(NEXT_STEP_BOX))
         question = any(center_inside(b, boxes) for b in buttons) if boxes else False
+        question = question or self.uia.question_card(window) is not None
         return title, light_for_screen(row_states, approval, stop, question)
 
     def _model_button(self, window: int) -> str:

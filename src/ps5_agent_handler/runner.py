@@ -98,6 +98,7 @@ class Runner(threading.Thread):
         self._held: list[Chord] = []
         self._tracker = StatusTracker()
         self._screen = ScreenTracker()
+        self._other_dictation: str | None = None  # prompt box text when dictation for "Other" began
         self._next_status = 0.0
         self._last_jump: str | None = None
 
@@ -241,18 +242,26 @@ class Runner(threading.Thread):
             if done is not None:  # a question card is open, so the button works on it
                 log.info(done)
                 return
-        if action.focus_prompt:
-            # With "Other" picked on a question card, dictate into its answer box instead.
-            if not self.platform.focus_question_other(window) and not self.platform.focus_prompt(window):
-                log.info("Couldn't find Claude's prompt box.")
+        claude_mic = action.kind == "click" and "Stop dictation" in action.labels
+        other_mode = claude_mic and self._other_dictation is None and self.platform.question_other_picked(window)
+        prompt_before = ""
+        if other_mode:
+            # Dictation adds where the cursor is; put it at the end so the new words
+            # are easy to tell apart from anything already in the box.
+            self.platform.prompt_caret_to_end(window)
+            prompt_before = self.platform.prompt_text(window)
+        if action.focus_prompt and not self.platform.focus_prompt(window):
+            log.info("Couldn't find Claude's prompt box.")
         if action.kind == "keys":
             self._send_keys(window, action.chords)
             return
         pressed = self.platform.click_button(window, action.labels)
+        if claude_mic and pressed:
+            self._after_claude_mic(window, pressed, other_mode, prompt_before)
         if not pressed and action.next_step:
             pressed = self.platform.answer_next_step(window, action.next_step)
             if pressed:
-                log.info("Pressed '%s' in Claude's next-step box.", pressed)
+                log.info("Pressed '%s' on the card Claude is waiting on.", pressed)
                 return
         if pressed:
             log.info("Pressed '%s'.", pressed)
@@ -262,6 +271,25 @@ class Runner(threading.Thread):
             looked_for = ", ".join(f"'{label}'" for label in action.labels)
             log.info("No %s button on screen (looked for %s).", action.name, looked_for)
             self.feedback.request("nothing")
+
+    def _after_claude_mic(self, window: int, pressed: str, other_mode: bool, prompt_before: str) -> None:
+        """Claude's dictation always writes into its prompt box. When it was started
+        with "Other" picked on a question card, move the words there once it stops."""
+        if pressed == "Stop dictation":
+            if self._other_dictation is None:
+                return
+            before, self._other_dictation = self._other_dictation, None
+            outcome, text = self.platform.move_dictation_to_other(window, before)
+            if outcome == "moved":
+                log.info("Put your words in the Other box: %s", text)
+            elif outcome == "changed":
+                log.info("The prompt box changed in an unexpected way, so nothing was moved; your words are there.")
+            elif outcome == "no_box":
+                log.warning("Couldn't find the Other box, so your words are in the prompt box (and on the clipboard).")
+            else:
+                log.info("Didn't get any words from the dictation.")
+        elif other_mode:
+            self._other_dictation = prompt_before  # started for the Other box
 
     def _send_keys(self, window: int, chords: tuple[Chord, ...]) -> None:
         for index, chord in enumerate(chords):
