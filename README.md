@@ -1,4 +1,4 @@
-# ps5-agent-handler
+# 🎮 ps5-agent-handler
 
 Use a PS5 DualSense controller to drive the **Code tab** of the Claude desktop app: switch sessions, approve or deny what Claude wants to do, stop it, and talk to it. No mouse needed.
 
@@ -18,11 +18,13 @@ To build the download yourself: `uv run python packaging/build.py` (makes `dist/
 
 The Mac version works the same way, with Claude's Mac shortcuts (Cmd instead of Ctrl; the app translates them). It reads Claude's window through the macOS Accessibility API instead of Windows UI Automation. **It hasn't been run on a real Mac yet**: the logic that doesn't need a Mac (shortcut translation, reading Claude's screen) is tested here, but expect a round of fixes the first time it runs.
 
-- **Download:** build `ps5-agent-mac.zip` on a Mac with `uv run python packaging/build.py` (PyInstaller can't build Mac apps on Windows), unzip it and double-click `ps5-agent`. `START HERE (Mac).txt` covers the rest.
-- **From source:** the same as Windows: `uv sync`, then `uv run ps5-agent`.
-- **Permissions:** macOS asks for **Accessibility** (to read Claude's window and press keys) and **Input Monitoring** (to read the controller) for Terminal or `ps5-agent`, in System Settings > Privacy & Security. Quit and reopen after turning them on.
-- **Unsigned app:** macOS may refuse to open it at first; right-click `ps5-agent`, choose **Open**, then **Open** again.
-- If something doesn't work, run `ps5-agent --inspect` with Claude open and share what it prints.
+- **The app:** on a Mac, `uv run python packaging/build.py` builds `dist/ps5-agent.app` and `dist/ps5-agent-mac.dmg` (PyInstaller can't build Mac apps on Windows). Open the `.dmg` and drag **ps5-agent** into Applications.
+- **Menu bar, no window:** the app shows 🎮 in the menu bar, with the controller and light bar status, Pause, Open button map, Open log, Start at login and Quit. The icon turns 🎮❗ when Claude needs you and 🎮⏸ when paused.
+- **Its files:** the button map is `~/Library/Application Support/ps5-agent/config.toml`, the log `~/Library/Logs/ps5-agent.log`.
+- **Permissions:** macOS asks for **Accessibility** (to read Claude's window and press keys) and **Input Monitoring** (to read the controller) for ps5-agent, in System Settings > Privacy & Security. Quit and reopen after turning them on. Rebuilding the app means granting them again (its signature changes).
+- **Unsigned app:** macOS may refuse to open it at first; right-click it, choose **Open**, then **Open** again.
+- **From source:** `uv sync`, then `uv run ps5-agent` (Terminal) or `uv run ps5-agent --menubar` (menu bar).
+- If something doesn't work, run `uv run ps5-agent --inspect` with Claude open and share what it prints, or send the log.
 
 ## Set up from source
 

@@ -1,34 +1,35 @@
 ps5-agent: drive the Claude desktop app's Code tab with a PS5 controller (Mac)
 ==============================================================================
 
-1. Pair the controller: hold PS + Create (the small button left of the
+1. Install: drag ps5-agent into the Applications folder (in this window).
+
+2. Pair the controller: hold PS + Create (the small button left of the
    touchpad) until the light bar flashes, then pick it in
    System Settings > Bluetooth. A USB-C cable works too.
 
-2. Open the Claude desktop app and go to the Code tab.
+3. Open ps5-agent from Applications. The first time, macOS may say it can't
+   be opened because it isn't signed yet: right-click (or Control-click) it,
+   choose Open, then Open again. Or go to System Settings > Privacy &
+   Security and click "Open Anyway".
 
-3. Open the ps5-agent folder and double-click "ps5-agent". It opens in
-   Terminal and shows what each button does; keep it open while you play.
-   Press Ctrl+C in it (or close it) to quit.
+   It has no window: look for 🎮 in the menu bar (top right). Its menu shows
+   whether the controller is connected and what the light bar means, and has
+   Pause, Open button map, Open log, Start at login and Quit.
 
-   The first time, macOS may say the app "can't be opened" because it isn't
-   signed yet: right-click (or Control-click) "ps5-agent", choose Open, then
-   Open again. Or go to System Settings > Privacy & Security and click
-   "Open Anyway".
-
-4. Give it permission (macOS asks the first time; if it doesn't work, check):
-   - System Settings > Privacy & Security > Accessibility: turn on Terminal
-     (or ps5-agent). It needs this to read Claude's window and press keys.
+4. Give it permission (macOS asks the first time):
+   - System Settings > Privacy & Security > Accessibility: turn on ps5-agent.
+     It needs this to read Claude's window and press keys.
    - System Settings > Privacy & Security > Input Monitoring: turn on
-     Terminal (or ps5-agent), so it can read the controller.
-   Quit and reopen it after changing these.
+     ps5-agent, so it can read the controller.
+   Then choose Quit from the 🎮 menu and open ps5-agent again.
 
-The first run makes config.toml next to "ps5-agent". Edit it to change what the
-buttons do; saved changes load by themselves. Claude's shortcuts use Cmd on the
-Mac; the app takes care of that.
+5. Open the Claude desktop app, go to the Code tab, and use the controller.
 
-Quick test of the buttons:   ./ps5-agent --test-buttons
-See what Claude is showing:  ./ps5-agent --inspect
+The button map is ~/Library/Application Support/ps5-agent/config.toml
+("Open button map" in the 🎮 menu). Saved changes load by themselves. Claude's
+shortcuts use Cmd on the Mac; the app takes care of that.
+
+The log is ~/Library/Logs/ps5-agent.log ("Open log" in the 🎮 menu).
 
 The Mac version is new and hasn't been tested much yet. If something doesn't
-work, run ./ps5-agent --inspect with Claude open and share what it prints.
+work, send the log.

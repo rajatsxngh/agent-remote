@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
-import time
 from pathlib import Path
 
 from . import __version__
@@ -39,14 +38,21 @@ def main(argv: list[str] | None = None) -> int:
     mode.add_argument("--test-buttons", action="store_true", help="only show what the controller sends")
     mode.add_argument("--dry-run", action="store_true", help="show what each button would do, without touching Claude")
     mode.add_argument("--inspect", action="store_true", help="list the buttons Claude is showing right now")
+    mode.add_argument("--menubar", action="store_true", help="Mac: run as a menu bar app (the .app does this)")
     parser.add_argument("-v", "--verbose", action="store_true", help="print debugging details")
     parser.add_argument("--version", action="version", version=f"ps5-agent {__version__}")
     args = parser.parse_args(argv)
+    menubar = args.menubar or (MAC_APP and not (args.inspect or args.test_buttons or args.dry_run))
 
+    handlers: list[logging.Handler] = [logging.StreamHandler()]
+    if menubar:
+        LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+        handlers = [logging.FileHandler(LOG_FILE, encoding="utf-8")]  # a menu bar app has no window
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
         format="%(asctime)s  %(message)s",
         datefmt="%H:%M:%S",
+        handlers=handlers,
     )
     if not args.verbose:
         for noisy in ("comtypes", "faster_whisper", "httpx", "httpx2", "httpcore", "httpcore2"):
@@ -63,27 +69,40 @@ def main(argv: list[str] | None = None) -> int:
             config = load_config(config_path)
         except ConfigError as exc:
             print(f"config problem: {exc}")
+            log.error("config problem: %s", exc)
             return _finish(2)
+        if menubar:
+            from .macapp import run_menubar
+
+            return run_menubar(config, config_path)
         return _finish(run(config, config_path, dry_run=args.dry_run))
     except KeyboardInterrupt:
         return 0
 
 
-FROZEN = getattr(sys, "frozen", False)  # running as the packaged .exe
+FROZEN = getattr(sys, "frozen", False)  # running as the packaged app
+# Running as the Mac .app (ps5-agent.app/Contents/MacOS/...): a menu bar app.
+MAC_APP = FROZEN and sys.platform == "darwin" and ".app/Contents/MacOS" in sys.executable
+MAC_SUPPORT = Path.home() / "Library" / "Application Support" / "ps5-agent"
+LOG_FILE = Path.home() / "Library" / "Logs" / "ps5-agent.log"
 
 
 def default_config_path() -> Path:
-    """config.toml next to the app (the .exe when packaged, else the current folder).
+    """Where config.toml lives.
 
-    The packaged app carries a default copy and puts it next to the .exe on first
-    run, so it's easy to find and edit.
+    From source: the current folder. The Windows / Mac folder app: next to the
+    program. The Mac .app: ~/Library/Application Support/ps5-agent (never inside
+    the app itself). The packaged app carries a default copy and puts it there on
+    first run, so it's easy to find and edit.
     """
     if not FROZEN:
         return Path("config.toml")
-    here = Path(sys.executable).resolve().parent / "config.toml"
+    folder = MAC_SUPPORT if MAC_APP else Path(sys.executable).resolve().parent
+    here = folder / "config.toml"
     if not here.exists():
-        bundled = Path(getattr(sys, "_MEIPASS", here.parent)) / "config.toml"
+        bundled = Path(getattr(sys, "_MEIPASS", folder)) / "config.toml"
         try:
+            folder.mkdir(parents=True, exist_ok=True)
             here.write_bytes(bundled.read_bytes())
             print(f"Made your button map: {here}")
         except OSError:
@@ -93,7 +112,7 @@ def default_config_path() -> Path:
 
 def _finish(code: int) -> int:
     """When the packaged app was double-clicked, keep its window open after an error."""
-    if FROZEN and code:
+    if FROZEN and code and not MAC_APP:
         try:
             input("\nPress Enter to close.")
         except (EOFError, KeyboardInterrupt):
@@ -102,35 +121,6 @@ def _finish(code: int) -> int:
 
 
 # ---------------------------------------------------------------- run
-
-
-class ConfigWatcher:
-    """Reloads config.toml after you save it."""
-
-    def __init__(self, path: Path) -> None:
-        self.path = path
-        self._mtime = self._stat()
-        self._next_check = 0.0
-
-    def _stat(self) -> float | None:
-        try:
-            return self.path.stat().st_mtime
-        except OSError:
-            return None
-
-    def poll(self, now: float) -> Config | None:
-        if now < self._next_check:
-            return None
-        self._next_check = now + 1.0
-        mtime = self._stat()
-        if mtime is None or mtime == self._mtime:
-            return None
-        self._mtime = mtime
-        try:
-            return load_config(self.path)
-        except ConfigError as exc:
-            log.error("config.toml has a problem, so the old settings stay: %s", exc)
-            return None
 
 
 def print_banner(config: Config, path: Path, voice, dry_run: bool) -> None:
@@ -152,71 +142,21 @@ def print_banner(config: Config, path: Path, voice, dry_run: bool) -> None:
 
 
 def run(config: Config, config_path: Path, dry_run: bool = False) -> int:
-    from .controller import Controller
-    from .engine import Engine
-    from .feedback import Feedback
-    from .platform import get_platform
-    from .runner import Runner
-    from .voice import NoVoice, make_voice
-
-    platform = get_platform(dry_run=dry_run)
-    if not platform.acquire_single_instance():
-        print("ps5-agent is already running in another window. Close that one first.")
-        return 1
-
-    controller = Controller()
-    feedback = Feedback(controller, config.feedback)
-    runner = Runner(platform, config, feedback, dry_run=dry_run)
-    runner.start()
-    uses_voice = any(
-        action.kind == "builtin" and action.name in ("push_to_talk", "toggle_talk")
-        for action in config.bindings.values()
-    )
-    if not uses_voice:
-        voice = NoVoice("no button uses Whisper; map toggle_talk or push_to_talk and restart to load it")
-    else:
-        try:
-            voice = make_voice(config.voice, runner, feedback)
-        except Exception as exc:
-            log.error("Voice is off: %s", exc)
-            voice = NoVoice(str(exc))
-    engine = Engine(config, runner, voice, feedback)
-    watcher = ConfigWatcher(config_path)
-
-    print_banner(config, config_path, voice, dry_run)
-    if controller.connected:
-        log.info("Controller: %s", controller.name)
-        feedback.request("connected")
-    else:
-        log.info("Waiting for a controller. Turn it on (Bluetooth) or plug it in.")
+    from .session import AlreadyRunning, AppSession
 
     try:
+        session = AppSession(config, config_path, dry_run=dry_run)
+    except AlreadyRunning as exc:
+        print(exc)
+        return 1
+    print_banner(config, config_path, session.voice, dry_run)
+    try:
         while True:
-            events = controller.poll(timeout_ms=8, threshold=engine.config.settings.trigger_threshold)
-            now = time.monotonic()
-            for event in events:
-                if event[0] == "connected":
-                    log.info("Controller connected: %s", event[1])
-                elif event[0] == "disconnected":
-                    log.info("Controller disconnected.")
-                engine.handle(event, now)
-            engine.tick(now)
-            feedback.drain()
-            new_config = watcher.poll(now)
-            if new_config is not None:
-                if new_config.voice != engine.config.voice:
-                    log.info("Voice settings change the next time you start ps5-agent.")
-                engine.set_config(new_config)
-                runner.set_config(new_config)
-                feedback.set_settings(new_config.feedback)
-                log.info("Reloaded %s.", config_path)
+            session.step(timeout_ms=8)
     except KeyboardInterrupt:
         log.info("Stopping.")
     finally:
-        voice.close()
-        runner.stop()
-        feedback.goodbye()
-        controller.close()
+        session.close()
     return 0
 
 
