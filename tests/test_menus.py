@@ -1,4 +1,4 @@
-from ps5_agent_handler.menus import (
+from agent_remote.menus import (
     MenuItem,
     choose,
     current_index,

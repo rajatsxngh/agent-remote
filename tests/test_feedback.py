@@ -1,5 +1,5 @@
-from ps5_agent_handler.config import FeedbackSettings
-from ps5_agent_handler.feedback import COLORS, Feedback
+from agent_remote.config import FeedbackSettings
+from agent_remote.feedback import COLORS, Feedback
 
 
 class FakePad:

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from ps5_agent_handler.config import ConfigError, load_config, parse_config
+from agent_remote.config import ConfigError, load_config, parse_config
 
 ROOT = Path(__file__).resolve().parents[1]
 

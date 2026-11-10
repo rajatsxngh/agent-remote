@@ -1,5 +1,5 @@
 [project]
-name = "ps5-agent-handler"
+name = "agent-remote"
 version = "0.1.0"
 description = "Drive the Claude desktop app's Code tab with a PS5 DualSense controller."
 readme = "README.md"
@@ -17,7 +17,7 @@ dependencies = [
 ]
 
 [project.scripts]
-ps5-agent = "ps5_agent_handler.cli:main"
+agent-remote = "agent_remote.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.12.3,<0.13.0"]

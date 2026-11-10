@@ -1,5 +1,5 @@
-from ps5_agent_handler.keys import parse_chord
-from ps5_agent_handler.platform.mac_keys import flags_for, keycode_for, mac_chord
+from agent_remote.keys import parse_chord
+from agent_remote.platform.mac_keys import flags_for, keycode_for, mac_chord
 
 
 def mac(text):

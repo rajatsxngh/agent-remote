@@ -1,4 +1,4 @@
-from ps5_agent_handler.matching import FoundButton, added_text, label_matches, pick_button
+from agent_remote.matching import FoundButton, added_text, label_matches, pick_button
 
 
 def test_added_text_finds_only_the_new_words():

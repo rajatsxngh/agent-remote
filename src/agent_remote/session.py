@@ -12,7 +12,7 @@ from pathlib import Path
 
 from .config import Config, ConfigError, load_config
 
-log = logging.getLogger("ps5_agent_handler")
+log = logging.getLogger("agent_remote")
 
 
 class AlreadyRunning(RuntimeError):
@@ -61,7 +61,7 @@ class AppSession:
         self.dry_run = dry_run
         self.platform = get_platform(dry_run=dry_run)
         if not self.platform.acquire_single_instance():
-            raise AlreadyRunning("ps5-agent is already running. Close that one first.")
+            raise AlreadyRunning("agent-remote is already running. Close that one first.")
         self.controller = Controller()
         self.feedback = Feedback(self.controller, config.feedback)
         self.runner = Runner(self.platform, config, self.feedback, dry_run=dry_run)
@@ -105,7 +105,7 @@ class AppSession:
         new_config = self.watcher.poll(now)
         if new_config is not None:
             if new_config.voice != self.config.voice:
-                log.info("Voice settings change the next time you start ps5-agent.")
+                log.info("Voice settings change the next time you start agent-remote.")
             self.engine.set_config(new_config)
             self.runner.set_config(new_config)
             self.feedback.set_settings(new_config.feedback)

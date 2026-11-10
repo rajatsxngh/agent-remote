@@ -3,6 +3,47 @@ revision = 3
 requires-python = ">=3.12"
 
 [[package]]
+name = "agent-remote"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "comtypes", marker = "sys_platform == 'win32'" },
+    { name = "faster-whisper" },
+    { name = "numpy" },
+    { name = "pyobjc-framework-applicationservices", marker = "sys_platform == 'darwin'" },
+    { name = "pyobjc-framework-cocoa", marker = "sys_platform == 'darwin'" },
+    { name = "pyobjc-framework-quartz", marker = "sys_platform == 'darwin'" },
+    { name = "pysdl2" },
+    { name = "pysdl2-dll" },
+    { name = "sounddevice" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pyinstaller" },
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "comtypes", marker = "sys_platform == 'win32'", specifier = ">=1.4.10" },
+    { name = "faster-whisper", specifier = ">=1.1" },
+    { name = "numpy", specifier = ">=1.26" },
+    { name = "pyobjc-framework-applicationservices", marker = "sys_platform == 'darwin'", specifier = ">=10" },
+    { name = "pyobjc-framework-cocoa", marker = "sys_platform == 'darwin'", specifier = ">=10" },
+    { name = "pyobjc-framework-quartz", marker = "sys_platform == 'darwin'", specifier = ">=10" },
+    { name = "pysdl2", specifier = ">=0.9.16" },
+    { name = "pysdl2-dll", specifier = ">=2.30" },
+    { name = "sounddevice", specifier = ">=0.4.6" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pyinstaller", specifier = ">=6.22.3" },
+    { name = "pytest", specifier = ">=9.2.0" },
+]
+
+[[package]]
 name = "altgraph"
 version = "0.17.5"
 source = { registry = "https://pypi.org/simple" }
@@ -512,47 +553,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/fc/1b/dcc64f358fcb51811b58ae40b3d28f820725f116d86487cc20bd4b130701/protobuf-7.36.2-cp310-abi3-win32.whl", hash = "sha256:912c1221170e16c08d1f086762f563dd61ff83c18b5fa6652952dfaded66f728", size = 442998, upload-time = "2026-09-17T20:07:55.826Z" },
     { url = "https://files.pythonhosted.org/packages/8a/55/b77bda4e5e5f5971fb51b07663694690e9afdb9402136c16a522bd621cad/protobuf-7.36.2-cp310-abi3-win_amd64.whl", hash = "sha256:a300819d441e078a5608c0d3c709796bb548136058fda017ae51d425b44fd353", size = 456514, upload-time = "2026-09-17T20:07:57.188Z" },
     { url = "https://files.pythonhosted.org/packages/e4/04/d52c7016b04b6c5108f26691f9d33ec82a9b65d041f1a9c771137693d618/protobuf-7.36.2-py3-none-any.whl", hash = "sha256:bdb3a345d48db958e6ce1f18e508beb0cc981d64f24088427549c866cd039f1e", size = 179806, upload-time = "2026-09-17T20:07:58.211Z" },
-]
-
-[[package]]
-name = "ps5-agent-handler"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "comtypes", marker = "sys_platform == 'win32'" },
-    { name = "faster-whisper" },
-    { name = "numpy" },
-    { name = "pyobjc-framework-applicationservices", marker = "sys_platform == 'darwin'" },
-    { name = "pyobjc-framework-cocoa", marker = "sys_platform == 'darwin'" },
-    { name = "pyobjc-framework-quartz", marker = "sys_platform == 'darwin'" },
-    { name = "pysdl2" },
-    { name = "pysdl2-dll" },
-    { name = "sounddevice" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pyinstaller" },
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "comtypes", marker = "sys_platform == 'win32'", specifier = ">=1.4.10" },
-    { name = "faster-whisper", specifier = ">=1.1" },
-    { name = "numpy", specifier = ">=1.26" },
-    { name = "pyobjc-framework-applicationservices", marker = "sys_platform == 'darwin'", specifier = ">=10" },
-    { name = "pyobjc-framework-cocoa", marker = "sys_platform == 'darwin'", specifier = ">=10" },
-    { name = "pyobjc-framework-quartz", marker = "sys_platform == 'darwin'", specifier = ">=10" },
-    { name = "pysdl2", specifier = ">=0.9.16" },
-    { name = "pysdl2-dll", specifier = ">=2.30" },
-    { name = "sounddevice", specifier = ">=0.4.6" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pyinstaller", specifier = ">=6.22.3" },
-    { name = "pytest", specifier = ">=9.2.0" },
 ]
 
 [[package]]

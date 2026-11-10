@@ -17,9 +17,9 @@ from pathlib import Path
 
 from .config import Config
 
-log = logging.getLogger("ps5_agent_handler")
+log = logging.getLogger("agent_remote")
 
-LAUNCH_AGENT = Path.home() / "Library" / "LaunchAgents" / "com.rajatsinghh.ps5-agent.plist"
+LAUNCH_AGENT = Path.home() / "Library" / "LaunchAgents" / "com.rajatsinghh.agent-remote.plist"
 LIGHT_WORDS = {
     "working": "Claude is working",
     "attention": "Claude needs you",
@@ -35,13 +35,13 @@ def login_item_enabled() -> bool:
 
 
 def set_login_item(enabled: bool) -> None:
-    """Start ps5-agent when you log in (a LaunchAgent pointing at this app)."""
+    """Start agent-remote when you log in (a LaunchAgent pointing at this app)."""
     if not enabled:
         LAUNCH_AGENT.unlink(missing_ok=True)
         return
     LAUNCH_AGENT.parent.mkdir(parents=True, exist_ok=True)
     plist = {
-        "Label": "com.rajatsinghh.ps5-agent",
+        "Label": "com.rajatsinghh.agent-remote",
         "ProgramArguments": [sys.executable],
         "RunAtLoad": True,
         "ProcessType": "Interactive",
@@ -86,7 +86,7 @@ def run_menubar(config: Config, config_path: Path) -> int:
             self.login_item = self._add(menu, "Start at login", "toggleLogin:")
             self.login_item.setState_(1 if login_item_enabled() else 0)
             menu.addItem_(AppKit.NSMenuItem.separatorItem())
-            self._add(menu, "Quit ps5-agent", "quit:")
+            self._add(menu, "Quit agent-remote", "quit:")
             self.item.setMenu_(menu)
             self.ticks = 0
             return self
@@ -146,6 +146,6 @@ def run_menubar(config: Config, config_path: Path) -> int:
         0.008, delegate, "tick:", None, True
     )
     Foundation.NSRunLoop.currentRunLoop().addTimer_forMode_(timer, Foundation.NSRunLoopCommonModes)
-    log.info("ps5-agent is running in the menu bar. Button map: %s", config_path)
+    log.info("agent-remote is running in the menu bar. Button map: %s", config_path)
     app.run()
     return 0

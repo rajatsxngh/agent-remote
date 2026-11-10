@@ -1,6 +1,6 @@
 import pytest
 
-from ps5_agent_handler.keys import Chord, KeyParseError, parse_chord, parse_keys
+from agent_remote.keys import Chord, KeyParseError, parse_chord, parse_keys
 
 
 def test_modifiers_are_aliased_and_ordered():

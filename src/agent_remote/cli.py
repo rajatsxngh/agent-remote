@@ -10,7 +10,7 @@ from pathlib import Path
 from . import __version__
 from .config import BUTTONS, GESTURES, Config, ConfigError, load_config
 
-log = logging.getLogger("ps5_agent_handler")
+log = logging.getLogger("agent_remote")
 
 PRETTY = {
     "cross": "Cross", "circle": "Circle", "square": "Square", "triangle": "Triangle",
@@ -30,7 +30,7 @@ def main(argv: list[str] | None = None) -> int:
         except (AttributeError, ValueError):
             pass
     parser = argparse.ArgumentParser(
-        prog="ps5-agent",
+        prog="agent-remote",
         description="Drive the Claude desktop app's Code tab with a PS5 DualSense controller.",
     )
     parser.add_argument("--config", type=Path, default=None, help="button map (default: config.toml next to the app)")
@@ -40,7 +40,7 @@ def main(argv: list[str] | None = None) -> int:
     mode.add_argument("--inspect", action="store_true", help="list the buttons Claude is showing right now")
     mode.add_argument("--menubar", action="store_true", help="Mac: run as a menu bar app (the .app does this)")
     parser.add_argument("-v", "--verbose", action="store_true", help="print debugging details")
-    parser.add_argument("--version", action="version", version=f"ps5-agent {__version__}")
+    parser.add_argument("--version", action="version", version=f"agent-remote {__version__}")
     args = parser.parse_args(argv)
     menubar = args.menubar or (MAC_APP and not (args.inspect or args.test_buttons or args.dry_run))
 
@@ -81,17 +81,17 @@ def main(argv: list[str] | None = None) -> int:
 
 
 FROZEN = getattr(sys, "frozen", False)  # running as the packaged app
-# Running as the Mac .app (ps5-agent.app/Contents/MacOS/...): a menu bar app.
+# Running as the Mac .app (agent-remote.app/Contents/MacOS/...): a menu bar app.
 MAC_APP = FROZEN and sys.platform == "darwin" and ".app/Contents/MacOS" in sys.executable
-MAC_SUPPORT = Path.home() / "Library" / "Application Support" / "ps5-agent"
-LOG_FILE = Path.home() / "Library" / "Logs" / "ps5-agent.log"
+MAC_SUPPORT = Path.home() / "Library" / "Application Support" / "agent-remote"
+LOG_FILE = Path.home() / "Library" / "Logs" / "agent-remote.log"
 
 
 def default_config_path() -> Path:
     """Where config.toml lives.
 
     From source: the current folder. The Windows / Mac folder app: next to the
-    program. The Mac .app: ~/Library/Application Support/ps5-agent (never inside
+    program. The Mac .app: ~/Library/Application Support/agent-remote (never inside
     the app itself). The packaged app carries a default copy and puts it there on
     first run, so it's easy to find and edit.
     """
@@ -125,7 +125,7 @@ def _finish(code: int) -> int:
 
 def print_banner(config: Config, path: Path, voice, dry_run: bool) -> None:
     note = "   [DRY RUN: nothing is pressed]" if dry_run else ""
-    print(f"ps5-agent {__version__}: PS5 controller -> Claude (Code tab){note}")
+    print(f"agent-remote {__version__}: PS5 controller -> Claude (Code tab){note}")
     print(f"Button map: {path.resolve()} (saved changes load automatically)")
     shown = [b for b in (*BUTTONS, *GESTURES) if b in config.bindings]
     width = max((len(PRETTY[b]) for b in shown), default=0)

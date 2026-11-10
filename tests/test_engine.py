@@ -1,5 +1,5 @@
-from ps5_agent_handler.engine import REPEAT_DELAY, REPEAT_EVERY, Engine
-from ps5_agent_handler.runner import AppSwitch, JumpToAttention, MenuStep, ReleaseAll, RunAction, Scroll
+from agent_remote.engine import REPEAT_DELAY, REPEAT_EVERY, Engine
+from agent_remote.runner import AppSwitch, JumpToAttention, MenuStep, ReleaseAll, RunAction, Scroll
 
 
 class FakeRunner:

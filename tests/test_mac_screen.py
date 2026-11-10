@@ -1,6 +1,6 @@
 """The Mac screen logic, checked against a small hand-made tree shaped like Claude's."""
 
-from ps5_agent_handler.platform.mac_screen import ClaudeScreen, Node
+from agent_remote.platform.mac_screen import ClaudeScreen, Node
 
 
 def build():

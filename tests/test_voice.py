@@ -1,6 +1,6 @@
 import numpy as np
 
-from ps5_agent_handler.voice import to_16k
+from agent_remote.voice import to_16k
 
 
 def test_48k_is_averaged_down():

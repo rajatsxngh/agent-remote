@@ -1,30 +1,30 @@
-# 🎮 ps5-agent-handler
+# 🎮 agent-remote
 
 Use a PS5 DualSense controller to drive the **Code tab** of the Claude desktop app: switch sessions, approve or deny what Claude wants to do, stop it, and talk to it. No mouse needed.
 
-It runs on Windows and macOS. The Mac version is new and not yet tested on a real Mac (see [Mac](#mac)). Everything system-specific lives in `src/ps5_agent_handler/platform/` (`windows.py`, `mac.py`).
+It runs on Windows and macOS. The Mac version is new and not yet tested on a real Mac (see [Mac](#mac)). Everything system-specific lives in `src/agent_remote/platform/` (`windows.py`, `mac.py`).
 
 ## Download (Windows)
 
-1. Download `ps5-agent-windows.zip` from the latest release and unzip it anywhere.
-2. Pair the controller (see step 2 below), open the Claude desktop app's Code tab, and double-click `ps5-agent.exe`.
+1. Download `agent-remote-windows.zip` from the latest release and unzip it anywhere.
+2. Pair the controller (see step 2 below), open the Claude desktop app's Code tab, and double-click `agent-remote.exe`.
 3. Keep its window open while you use the controller. `START HERE.txt` in the zip has the details.
 
-The first run puts `config.toml` next to `ps5-agent.exe`, so you can change the buttons. The app isn't code-signed yet, so Windows may say "Windows protected your PC": choose **More info**, then **Run anyway**. The download leaves out local Whisper to stay small (27 MB); Circle uses Claude's own mic.
+The first run puts `config.toml` next to `agent-remote.exe`, so you can change the buttons. The app isn't code-signed yet, so Windows may say "Windows protected your PC": choose **More info**, then **Run anyway**. The download leaves out local Whisper to stay small (27 MB); Circle uses Claude's own mic.
 
-To build the download yourself: `uv run python packaging/build.py` (makes `dist/ps5-agent-windows.zip`).
+To build the download yourself: `uv run python packaging/build.py` (makes `dist/agent-remote-windows.zip`).
 
 ## Mac
 
 The Mac version works the same way, with Claude's Mac shortcuts (Cmd instead of Ctrl; the app translates them). It reads Claude's window through the macOS Accessibility API instead of Windows UI Automation. **It hasn't been run on a real Mac yet**: the logic that doesn't need a Mac (shortcut translation, reading Claude's screen) is tested here, but expect a round of fixes the first time it runs.
 
-- **The app:** on a Mac, `uv run python packaging/build.py` builds `dist/ps5-agent.app` and `dist/ps5-agent-mac.dmg` (PyInstaller can't build Mac apps on Windows). Open the `.dmg` and drag **ps5-agent** into Applications.
+- **The app:** on a Mac, `uv run python packaging/build.py` builds `dist/agent-remote.app` and `dist/agent-remote-mac.dmg` (PyInstaller can't build Mac apps on Windows). Open the `.dmg` and drag **agent-remote** into Applications.
 - **Menu bar, no window:** the app shows 🎮 in the menu bar, with the controller and light bar status, Pause, Open button map, Open log, Start at login and Quit. The icon turns 🎮❗ when Claude needs you and 🎮⏸ when paused.
-- **Its files:** the button map is `~/Library/Application Support/ps5-agent/config.toml`, the log `~/Library/Logs/ps5-agent.log`.
-- **Permissions:** macOS asks for **Accessibility** (to read Claude's window and press keys) and **Input Monitoring** (to read the controller) for ps5-agent, in System Settings > Privacy & Security. Quit and reopen after turning them on. Rebuilding the app means granting them again (its signature changes).
+- **Its files:** the button map is `~/Library/Application Support/agent-remote/config.toml`, the log `~/Library/Logs/agent-remote.log`.
+- **Permissions:** macOS asks for **Accessibility** (to read Claude's window and press keys) and **Input Monitoring** (to read the controller) for agent-remote, in System Settings > Privacy & Security. Quit and reopen after turning them on. Rebuilding the app means granting them again (its signature changes).
 - **Unsigned app:** macOS may refuse to open it at first; right-click it, choose **Open**, then **Open** again.
-- **From source:** `uv sync`, then `uv run ps5-agent` (Terminal) or `uv run ps5-agent --menubar` (menu bar).
-- If something doesn't work, run `uv run ps5-agent --inspect` with Claude open and share what it prints, or send the log.
+- **From source:** `uv sync`, then `uv run agent-remote` (Terminal) or `uv run agent-remote --menubar` (menu bar).
+- If something doesn't work, run `uv run agent-remote --inspect` with Claude open and share what it prints, or send the log.
 
 ## Set up from source
 
@@ -39,13 +39,13 @@ The Mac version works the same way, with Claude's Mac shortcuts (Cmd instead of 
 4. Check that the buttons come through:
 
    ```
-   uv run ps5-agent --test-buttons
+   uv run agent-remote --test-buttons
    ```
 
 5. Start it:
 
    ```
-   uv run ps5-agent
+   uv run agent-remote
    ```
 
 Keep that terminal open: it prints what each button did. The first time it starts, it downloads the Whisper speech model (about 480 MB for `small.en`).
@@ -128,16 +128,16 @@ Press **Ctrl+/** in the Code tab to see all of Claude's own shortcuts.
 
 | Command | What it does |
 |---|---|
-| `uv run ps5-agent` | Run it |
-| `uv run ps5-agent --test-buttons` | Only print what the controller sends |
-| `uv run ps5-agent --dry-run` | Print what each button would do, without touching Claude (voice still transcribes) |
-| `uv run ps5-agent --inspect` | List the buttons Claude is showing right now |
+| `uv run agent-remote` | Run it |
+| `uv run agent-remote --test-buttons` | Only print what the controller sends |
+| `uv run agent-remote --dry-run` | Print what each button would do, without touching Claude (voice still transcribes) |
+| `uv run agent-remote --inspect` | List the buttons Claude is showing right now |
 | `uv run pytest` | Run the tests |
 
 ## If something doesn't work
 
 - **Nothing shows up in `--test-buttons`.** If Steam is running, quit it or turn off its PlayStation controller support, because Steam Input takes the controller over. Then check the controller is paired in Bluetooth settings.
-- **Triangle or Square says "No approve button on screen" while a prompt is showing.** The prompt's labels aren't the ones in `config.toml`. Run `uv run ps5-agent --inspect` while the prompt is showing, find its buttons in the list, and put those labels in `approve` / `reject` in `config.toml`.
+- **Triangle or Square says "No approve button on screen" while a prompt is showing.** The prompt's labels aren't the ones in `config.toml`. Run `uv run agent-remote --inspect` while the prompt is showing, find its buttons in the list, and put those labels in `approve` / `reject` in `config.toml`.
 - **"Couldn't open the microphone".** Turn on Windows **Settings > Privacy & security > Microphone > Let desktop apps access your microphone**.
 - **The first R2 press is slow.** The Whisper model loads in the background at start-up, and the very first run downloads it.
 - **"Couldn't bring Claude to the front".** Windows sometimes stops apps from switching windows. Click the Claude window once and try again, or set `bring_claude_to_front = false` so buttons only work while Claude is already in front.

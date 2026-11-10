@@ -2,7 +2,7 @@ import tomllib
 
 import pytest
 
-from ps5_agent_handler.config import parse_config
+from agent_remote.config import parse_config
 
 # A fixed button map, so the tests don't depend on your edits to config.toml.
 TEST_TOML = """

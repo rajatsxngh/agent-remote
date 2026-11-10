@@ -1,6 +1,6 @@
 import pytest
 
-from ps5_agent_handler.gestures import StickFlick, SwipeTracker, TriggerButton
+from agent_remote.gestures import StickFlick, SwipeTracker, TriggerButton
 
 
 def test_a_flick_presses_once_and_releases_back_in_the_middle():

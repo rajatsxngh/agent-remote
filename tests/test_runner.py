@@ -1,7 +1,7 @@
 import time
 
-from ps5_agent_handler.runner import AppSwitch, JumpToAttention, MenuStep, Paste, RunAction, Runner
-from ps5_agent_handler.status import SessionStatus
+from agent_remote.runner import AppSwitch, JumpToAttention, MenuStep, Paste, RunAction, Runner
+from agent_remote.status import SessionStatus
 
 
 class FakePlatform:
@@ -149,7 +149,7 @@ def test_click_says_so_when_no_button_is_found(config):
 
 
 def test_triangle_answers_the_next_step_box_when_there_is_no_prompt():
-    from ps5_agent_handler.config import parse_config
+    from agent_remote.config import parse_config
 
     config = parse_config(
         {
@@ -165,7 +165,7 @@ def test_triangle_answers_the_next_step_box_when_there_is_no_prompt():
 
 
 def test_a_permission_prompt_still_comes_first(config):
-    from ps5_agent_handler.config import parse_config
+    from agent_remote.config import parse_config
 
     config = parse_config({"buttons": {"square": {"click": ["Deny"], "next_step": "no"}}})
     platform = FakePlatform(click_result="Deny")
@@ -175,7 +175,7 @@ def test_a_permission_prompt_still_comes_first(config):
 
 
 def _dpad_down():
-    from ps5_agent_handler.config import parse_config
+    from agent_remote.config import parse_config
 
     return parse_config(
         {"buttons": {"dpad_down": {"keys": "ctrl+shift+]", "question": "option_next"}}}
@@ -199,7 +199,7 @@ def test_without_a_question_card_the_dpad_switches_sessions():
 
 
 def _circle():
-    from ps5_agent_handler.config import parse_config
+    from agent_remote.config import parse_config
 
     return parse_config(
         {"buttons": {"circle": {"click": ["Stop dictation", "Press and hold to record"], "focus_prompt": True}}}
@@ -258,7 +258,7 @@ def test_other_actions_let_go_of_alt_first(config):
 
 
 def test_focus_prompt_comes_before_the_click(config):
-    from ps5_agent_handler.config import parse_config
+    from agent_remote.config import parse_config
 
     dictate = parse_config(
         {"buttons": {"circle": {"click": ["Stop dictation", "Dictate"], "focus_prompt": True}}}

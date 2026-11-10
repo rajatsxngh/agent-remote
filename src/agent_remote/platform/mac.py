@@ -188,7 +188,7 @@ class MacPlatform:
             self.ax.wake(pid)
 
     def acquire_single_instance(self) -> bool:
-        path = os.path.join(tempfile.gettempdir(), "ps5-agent-handler.lock")
+        path = os.path.join(tempfile.gettempdir(), "agent-remote.lock")
         self._lock_file = open(path, "w")  # noqa: SIM115 - kept open while the app runs
         try:
             fcntl.flock(self._lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)

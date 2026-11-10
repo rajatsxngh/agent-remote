@@ -687,7 +687,7 @@ class WindowsPlatform:
             self.uia.wake(window)
 
     def acquire_single_instance(self) -> bool:
-        handle = _CreateMutexW(None, False, "Local\\ps5-agent-handler")
+        handle = _CreateMutexW(None, False, "Local\\agent-remote")
         if handle and ctypes.get_last_error() == ERROR_ALREADY_EXISTS:
             _CloseHandle(handle)
             return False

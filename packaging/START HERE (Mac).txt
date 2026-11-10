@@ -1,13 +1,13 @@
-ps5-agent: drive the Claude desktop app's Code tab with a PS5 controller (Mac)
+agent-remote: drive the Claude desktop app's Code tab with a PS5 controller (Mac)
 ==============================================================================
 
-1. Install: drag ps5-agent into the Applications folder (in this window).
+1. Install: drag agent-remote into the Applications folder (in this window).
 
 2. Pair the controller: hold PS + Create (the small button left of the
    touchpad) until the light bar flashes, then pick it in
    System Settings > Bluetooth. A USB-C cable works too.
 
-3. Open ps5-agent from Applications. The first time, macOS may say it can't
+3. Open agent-remote from Applications. The first time, macOS may say it can't
    be opened because it isn't signed yet: right-click (or Control-click) it,
    choose Open, then Open again. Or go to System Settings > Privacy &
    Security and click "Open Anyway".
@@ -17,19 +17,19 @@ ps5-agent: drive the Claude desktop app's Code tab with a PS5 controller (Mac)
    Pause, Open button map, Open log, Start at login and Quit.
 
 4. Give it permission (macOS asks the first time):
-   - System Settings > Privacy & Security > Accessibility: turn on ps5-agent.
+   - System Settings > Privacy & Security > Accessibility: turn on agent-remote.
      It needs this to read Claude's window and press keys.
    - System Settings > Privacy & Security > Input Monitoring: turn on
-     ps5-agent, so it can read the controller.
-   Then choose Quit from the 🎮 menu and open ps5-agent again.
+     agent-remote, so it can read the controller.
+   Then choose Quit from the 🎮 menu and open agent-remote again.
 
 5. Open the Claude desktop app, go to the Code tab, and use the controller.
 
-The button map is ~/Library/Application Support/ps5-agent/config.toml
+The button map is ~/Library/Application Support/agent-remote/config.toml
 ("Open button map" in the 🎮 menu). Saved changes load by themselves. Claude's
 shortcuts use Cmd on the Mac; the app takes care of that.
 
-The log is ~/Library/Logs/ps5-agent.log ("Open log" in the 🎮 menu).
+The log is ~/Library/Logs/agent-remote.log ("Open log" in the 🎮 menu).
 
 The Mac version is new and hasn't been tested much yet. If something doesn't
 work, send the log.

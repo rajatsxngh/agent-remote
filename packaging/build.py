@@ -2,8 +2,8 @@
 
     uv run python packaging/build.py
 
-On Windows: dist/ps5-agent/ (ps5-agent.exe) and dist/ps5-agent-windows.zip.
-On a Mac:   dist/ps5-agent.app (a menu bar app) and dist/ps5-agent-mac.dmg,
+On Windows: dist/agent-remote/ (agent-remote.exe) and dist/agent-remote-windows.zip.
+On a Mac:   dist/agent-remote.app (a menu bar app) and dist/agent-remote-mac.dmg,
             which you open and drag into Applications.
 PyInstaller can't build for another system, so build each on its own computer.
 Local Whisper is left out to keep the download small; the default voice is
@@ -23,12 +23,12 @@ from pathlib import Path
 
 import PyInstaller.__main__
 
-NAME = "ps5-agent"
+NAME = "agent-remote"
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGING = ROOT / "packaging"
 DIST = ROOT / "dist"
 MAC = sys.platform == "darwin"
-BUNDLE_ID = "com.rajatsinghh.ps5-agent"
+BUNDLE_ID = "com.rajatsinghh.agent-remote"
 SYSTEM = "mac" if MAC else "windows"
 START_HERE = "START HERE (Mac).txt" if MAC else "START HERE.txt"
 # Big optional pieces the packaged app doesn't need (Whisper and its helpers).
@@ -52,7 +52,7 @@ def build() -> Path:
         "--paths", str(ROOT / "src"),
         "--collect-all", "sdl2dll",  # the SDL2 library that reads the controller
         "--collect-submodules", "sdl2",
-        "--collect-submodules", "ps5_agent_handler",
+        "--collect-submodules", "agent_remote",
         "--add-data", f"{ROOT / 'config.toml'}{os.pathsep}.",
     ]
     if MAC:

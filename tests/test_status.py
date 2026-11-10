@@ -1,4 +1,4 @@
-from ps5_agent_handler.status import (
+from agent_remote.status import (
     ScreenTracker,
     SessionStatus,
     StatusTracker,
